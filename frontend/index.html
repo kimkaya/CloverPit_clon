@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CloverPit - 슬롯머신 호러 로그라이크</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 시작 화면 -->
+        <div id="start-screen" class="screen active">
+            <div class="title-container">
+                <h1 class="game-title">🍀 CloverPit 🍀</h1>
+                <p class="subtitle">당신은 빚을 갚고 탈출할 수 있을까?</p>
+            </div>
+            <div class="start-form">
+                <input type="text" id="player-name" placeholder="이름을 입력하세요" maxlength="20" value="플레이어">
+                <button id="start-btn" class="btn btn-primary">게임 시작</button>
+            </div>
+            <div class="warning">
+                <p>⚠️ 경고: 이 게임은 중독성이 강합니다</p>
+                <p>라운드마다 빚이 증가하며, 빚을 갚지 못하면 게임 오버됩니다</p>
+            </div>
+        </div>
+
+        <!-- 게임 화면 -->
+        <div id="game-screen" class="screen">
+            <div class="game-header">
+                <div class="player-info">
+                    <h2 id="player-name-display"></h2>
+                    <p>라운드: <span id="round-display">1</span></p>
+                </div>
+                <div class="stats">
+                    <div class="stat-item money">
+                        <span class="stat-label">💰 소지금</span>
+                        <span id="money-display" class="stat-value">100</span>
+                    </div>
+                    <div class="stat-item debt">
+                        <span class="stat-label">💀 빚</span>
+                        <span id="debt-display" class="stat-value">50</span>
+                    </div>
+                    <div class="stat-item tickets">
+                        <span class="stat-label">🎫 티켓</span>
+                        <span id="tickets-display" class="stat-value">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="game-content">
+                <!-- 슬롯 머신 -->
+                <div class="slot-machine">
+                    <div class="slot-title">🎰 운명의 슬롯머신 🎰</div>
+                    <div class="slot-grid">
+                        <!-- Row 1 -->
+                        <div class="symbol-cell" data-row="0" data-col="0">🍒</div>
+                        <div class="symbol-cell" data-row="0" data-col="1">🍋</div>
+                        <div class="symbol-cell" data-row="0" data-col="2">🍊</div>
+                        <div class="symbol-cell" data-row="0" data-col="3">🔔</div>
+                        <div class="symbol-cell" data-row="0" data-col="4">💎</div>
+
+                        <!-- Row 2 -->
+                        <div class="symbol-cell" data-row="1" data-col="0">🍋</div>
+                        <div class="symbol-cell" data-row="1" data-col="1">🍊</div>
+                        <div class="symbol-cell" data-row="1" data-col="2">🍒</div>
+                        <div class="symbol-cell" data-row="1" data-col="3">💎</div>
+                        <div class="symbol-cell" data-row="1" data-col="4">⭐</div>
+
+                        <!-- Row 3 -->
+                        <div class="symbol-cell" data-row="2" data-col="0">🍊</div>
+                        <div class="symbol-cell" data-row="2" data-col="1">🔔</div>
+                        <div class="symbol-cell" data-row="2" data-col="2">💎</div>
+                        <div class="symbol-cell" data-row="2" data-col="3">⭐</div>
+                        <div class="symbol-cell" data-row="2" data-col="4">7️⃣</div>
+                    </div>
+                    <div class="win-lines-indicator" id="win-lines-indicator"></div>
+                    <div class="slot-info">
+                        <p>베팅 금액: <strong>10원</strong></p>
+                        <p>최소 소지금: <strong>10원</strong></p>
+                    </div>
+                    <button id="spin-btn" class="btn btn-spin">슬롯 돌리기 (10원)</button>
+                    <div id="result-message" class="result-message"></div>
+                </div>
+
+                <!-- 아이템 섹션 -->
+                <div class="items-section">
+                    <h3>🛒 보유 아이템</h3>
+                    <div id="player-items" class="items-grid">
+                        <p class="no-items">아이템이 없습니다</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="game-actions">
+                <button id="shop-btn" class="btn btn-secondary">🏪 상점 열기</button>
+                <button id="end-round-btn" class="btn btn-danger">⏭️ 라운드 종료 (빚 갚기)</button>
+            </div>
+        </div>
+
+        <!-- 상점 화면 -->
+        <div id="shop-screen" class="screen">
+            <div class="shop-header">
+                <h2>🏪 행운의 상점</h2>
+                <p class="shop-subtitle">티켓으로 강력한 아이템을 구매하세요</p>
+                <button id="close-shop-btn" class="btn btn-secondary">닫기</button>
+            </div>
+            <div id="shop-items" class="shop-grid">
+                <!-- 동적으로 생성 -->
+            </div>
+        </div>
+
+        <!-- 게임 오버 화면 -->
+        <div id="gameover-screen" class="screen">
+            <div class="gameover-container">
+                <h1 class="gameover-title">💀 GAME OVER 💀</h1>
+                <p id="gameover-message" class="gameover-message"></p>
+                <div class="gameover-stats">
+                    <p>최종 라운드: <span id="final-round">0</span></p>
+                </div>
+                <button id="restart-btn" class="btn btn-primary">다시 시작</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 로딩 오버레이 -->
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="spinner"></div>
+        <p>처리 중...</p>
+    </div>
+
+    <!-- 알림 토스트 -->
+    <div id="toast" class="toast"></div>
+
+    <script src="game.js"></script>
+</body>
+</html>
