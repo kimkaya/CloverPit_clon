@@ -140,31 +140,54 @@ class CloverPitGame {
     }
 
     /**
-     * 스핀 애니메이션
+     * 스핀 애니메이션 - 열별로 순차적으로 회전
      */
     async animateSpin() {
-        const cells = document.querySelectorAll('.symbol-cell');
         const symbols = ['🍒', '🍋', '🍊', '🔔', '💎', '⭐', '7️⃣'];
+        const columns = 5; // 5개의 열
+        const rows = 3; // 3개의 행
+        const columnDelay = 200; // 각 열이 멈추는 간격 (ms)
+        const spinDuration = 1500; // 각 열의 기본 회전 시간 (ms)
+        const interval = 100; // 심볼 변경 간격 (ms)
 
-        // 모든 셀에 spinning 클래스 추가
-        cells.forEach(cell => {
-            cell.classList.add('spinning');
-        });
+        // 각 열을 비동기적으로 회전
+        const columnPromises = [];
 
-        // 랜덤 심볼로 빠르게 변경
-        const duration = 2000; // 2초
-        const interval = 100; // 0.1초마다 변경
+        for (let col = 0; col < columns; col++) {
+            const promise = this.spinColumn(col, rows, symbols, spinDuration + (col * columnDelay), interval);
+            columnPromises.push(promise);
+            await this.sleep(columnDelay / 2); // 각 열을 약간의 시차를 두고 시작
+        }
+
+        // 모든 열의 회전이 끝날 때까지 대기
+        await Promise.all(columnPromises);
+    }
+
+    /**
+     * 특정 열을 회전시키는 함수
+     */
+    async spinColumn(colIndex, rows, symbols, duration, interval) {
+        // 해당 열의 모든 셀 가져오기
+        const columnCells = [];
+        for (let row = 0; row < rows; row++) {
+            const cell = document.querySelector(`.symbol-cell[data-row="${row}"][data-col="${colIndex}"]`);
+            if (cell) {
+                columnCells.push(cell);
+                cell.classList.add('spinning');
+            }
+        }
+
+        // 회전 애니메이션
         const iterations = duration / interval;
-
         for (let i = 0; i < iterations; i++) {
-            cells.forEach(cell => {
+            columnCells.forEach(cell => {
                 cell.textContent = symbols[Math.floor(Math.random() * symbols.length)];
             });
             await this.sleep(interval);
         }
 
         // spinning 클래스 제거
-        cells.forEach(cell => {
+        columnCells.forEach(cell => {
             cell.classList.remove('spinning');
         });
     }
