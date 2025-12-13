@@ -309,10 +309,12 @@ body::before {
     transition: all 0.3s;
     font-size: 3.5em;
     position: relative;
+    overflow: hidden;
 }
 
 .symbol-cell.spinning {
-    animation: cellSpin 0.1s linear infinite;
+    animation: verticalSpin 0.1s linear infinite;
+    filter: blur(3px);
 }
 
 .symbol-cell.winning {
@@ -321,9 +323,19 @@ body::before {
     animation: winPulse 0.5s ease-in-out infinite;
 }
 
-@keyframes cellSpin {
-    0%, 100% { transform: scale(1); opacity: 0.7; }
-    50% { transform: scale(1.1); opacity: 1; }
+@keyframes verticalSpin {
+    0% {
+        transform: translateY(0);
+        opacity: 0.6;
+    }
+    50% {
+        transform: translateY(-20px);
+        opacity: 0.8;
+    }
+    100% {
+        transform: translateY(-40px);
+        opacity: 0.6;
+    }
 }
 
 @keyframes winPulse {

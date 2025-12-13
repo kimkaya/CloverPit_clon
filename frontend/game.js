@@ -89,15 +89,12 @@ class CloverPitGame {
         const spinBtn = document.getElementById('spin-btn');
         spinBtn.disabled = true;
 
-        // 스핀 애니메이션
-        await this.animateSpin();
-
-        // 서버에서 결과 가져오기
+        // 먼저 서버에서 결과 가져오기
         const result = await this.callAPI('spin');
 
         if (result.success) {
-            // 결과 표시
-            this.displaySpinResult(result.result);
+            // 결과를 가지고 스핀 애니메이션 (마지막에 실제 결과로 멈춤)
+            await this.animateSpin(result.result);
 
             // 승리 라인 표시
             if (result.win_lines && result.win_lines.length > 0) {
@@ -140,21 +137,31 @@ class CloverPitGame {
     }
 
     /**
-     * 스핀 애니메이션 - 열별로 순차적으로 회전
+     * 스핀 애니메이션 - 열별로 순차적으로 세로로 회전
+     * @param {Array} finalResult - 최종 결과 (3x5 배열)
      */
-    async animateSpin() {
+    async animateSpin(finalResult) {
         const symbols = ['🍒', '🍋', '🍊', '🔔', '💎', '⭐', '7️⃣'];
         const columns = 5; // 5개의 열
         const rows = 3; // 3개의 행
-        const columnDelay = 200; // 각 열이 멈추는 간격 (ms)
-        const spinDuration = 1500; // 각 열의 기본 회전 시간 (ms)
-        const interval = 100; // 심볼 변경 간격 (ms)
+        const columnDelay = 150; // 각 열이 멈추는 간격 (ms)
+        const spinDuration = 2000; // 각 열의 기본 회전 시간 (ms)
+        const interval = 50; // 심볼 변경 간격 (ms) - 더 빠르게
+
+        // 이전 당첨 표시 제거
+        const cells = document.querySelectorAll('.symbol-cell');
+        cells.forEach(cell => {
+            cell.classList.remove('winning');
+        });
 
         // 각 열을 비동기적으로 회전
         const columnPromises = [];
 
         for (let col = 0; col < columns; col++) {
-            const promise = this.spinColumn(col, rows, symbols, spinDuration + (col * columnDelay), interval);
+            // 해당 열의 최종 심볼들 추출 (각 행의 해당 열 값)
+            const finalSymbols = finalResult.map(row => row[col]);
+
+            const promise = this.spinColumn(col, rows, symbols, spinDuration + (col * columnDelay), interval, finalSymbols);
             columnPromises.push(promise);
             await this.sleep(columnDelay / 2); // 각 열을 약간의 시차를 두고 시작
         }
@@ -165,8 +172,9 @@ class CloverPitGame {
 
     /**
      * 특정 열을 회전시키는 함수
+     * @param {Array} finalSymbols - 이 열의 최종 결과 심볼들 (상단, 중간, 하단 순서)
      */
-    async spinColumn(colIndex, rows, symbols, duration, interval) {
+    async spinColumn(colIndex, rows, symbols, duration, interval, finalSymbols) {
         // 해당 열의 모든 셀 가져오기
         const columnCells = [];
         for (let row = 0; row < rows; row++) {
@@ -186,9 +194,13 @@ class CloverPitGame {
             await this.sleep(interval);
         }
 
-        // spinning 클래스 제거
-        columnCells.forEach(cell => {
+        // spinning 클래스 제거 및 최종 결과 표시
+        columnCells.forEach((cell, index) => {
             cell.classList.remove('spinning');
+            // 최종 결과로 설정
+            if (finalSymbols && finalSymbols[index]) {
+                cell.textContent = finalSymbols[index];
+            }
         });
     }
 

@@ -284,27 +284,26 @@ class GameAPI {
                 $positions[] = ['row' => $row, 'col' => $col];
             }
 
-            // 연속 3개 이상 같은 심볼 체크
-            if ($this->checkWinningLine($symbols)) {
-                // 가장 많이 나온 심볼 찾기
-                $symbolCounts = array_count_values($symbols);
-                arsort($symbolCounts);
-                $winSymbol = array_key_first($symbolCounts);
-                $count = $symbolCounts[$winSymbol];
+            // 왼쪽부터 연속된 같은 심볼 체크
+            $winCheck = $this->checkWinningLine($symbols);
 
-                if ($count >= 3) {
-                    $lineWin = $this->getSymbolWinAmount($winSymbol, $count);
+            if ($winCheck['matched']) {
+                $winSymbol = $winCheck['symbol'];
+                $count = $winCheck['count'];
+                $lineWin = $this->getSymbolWinAmount($winSymbol, $count);
 
-                    $winLines[] = [
-                        'name' => $pattern['name'],
-                        'symbol' => $winSymbol,
-                        'count' => $count,
-                        'amount' => $lineWin,
-                        'positions' => $positions
-                    ];
+                // 실제로 매칭된 위치만 포함 (연속된 심볼 개수만큼)
+                $matchedPositions = array_slice($positions, 0, $count);
 
-                    $totalWin += $lineWin;
-                }
+                $winLines[] = [
+                    'name' => $pattern['name'],
+                    'symbol' => $winSymbol,
+                    'count' => $count,
+                    'amount' => $lineWin,
+                    'positions' => $matchedPositions
+                ];
+
+                $totalWin += $lineWin;
             }
         }
 
@@ -333,11 +332,36 @@ class GameAPI {
     }
 
     /**
-     * 승리 라인 체크 (3개 이상 같은 심볼)
+     * 승리 라인 체크 (왼쪽부터 연속된 같은 심볼)
+     * @return array ['matched' => bool, 'symbol' => string, 'count' => int]
      */
     private function checkWinningLine($symbols) {
-        $counts = array_count_values($symbols);
-        return max($counts) >= 3;
+        if (empty($symbols)) {
+            return ['matched' => false, 'symbol' => null, 'count' => 0];
+        }
+
+        // 왼쪽부터 연속된 같은 심볼 개수 세기
+        $firstSymbol = $symbols[0];
+        $consecutiveCount = 1;
+
+        for ($i = 1; $i < count($symbols); $i++) {
+            if ($symbols[$i] === $firstSymbol) {
+                $consecutiveCount++;
+            } else {
+                break; // 다른 심볼이 나오면 중단
+            }
+        }
+
+        // 연속 3개 이상이면 당첨
+        if ($consecutiveCount >= 3) {
+            return [
+                'matched' => true,
+                'symbol' => $firstSymbol,
+                'count' => $consecutiveCount
+            ];
+        }
+
+        return ['matched' => false, 'symbol' => null, 'count' => 0];
     }
 
     /**
