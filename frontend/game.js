@@ -280,6 +280,13 @@ class CloverPitGame {
                 this.showGameOver(result.final_round);
             } else {
                 this.showToast(result.message, 'success');
+
+                // 보너스 티켓 알림
+                if (result.bonus_tickets > 0) {
+                    await this.sleep(500);
+                    this.showToast(`🎉 빚 상환 보너스! 티켓 ${result.bonus_tickets}개 획득!`, 'success');
+                }
+
                 await this.refreshGameState();
             }
         }

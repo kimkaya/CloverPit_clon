@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mysql --version:*)",
+      "Bash(mysql:*)",
+      "Bash(php:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(sc query:*)",
+      "Bash(git push)",
+      "Bash(git add:*)",
+      "Bash(git config:*)",
+      "Bash(dir:*)",
+      "Bash(del \".\\nul\")",
+      "Bash(del \".\\frontend\\nul\")",
+      "Bash(rm:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

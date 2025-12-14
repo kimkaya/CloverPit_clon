@@ -443,9 +443,13 @@ class GameAPI {
             $newDebt = $game['debt'] * 1.5; // 빚 50% 증가
             $newRound = $game['round'] + 1;
 
+            // 빚 상환 보너스 티켓 지급 (라운드가 높을수록 더 많이)
+            $bonusTickets = 3 + ($game['round'] * 2); // 기본 3개 + 라운드당 2개 추가
+            $newTickets = $game['tickets'] + $bonusTickets;
+
             $stmt = $conn->prepare("
                 UPDATE game_sessions
-                SET money = :money, debt = :debt, round = :round, updated_at = NOW()
+                SET money = :money, debt = :debt, round = :round, tickets = :tickets, updated_at = NOW()
                 WHERE session_id = :session_id
             ");
 
@@ -453,6 +457,7 @@ class GameAPI {
                 ':money' => $remainingMoney,
                 ':debt' => $newDebt,
                 ':round' => $newRound,
+                ':tickets' => $newTickets,
                 ':session_id' => $sessionId
             ]);
 
@@ -464,7 +469,9 @@ class GameAPI {
                 'message' => "라운드 {$game['round']} 클리어!",
                 'new_round' => $newRound,
                 'new_money' => $remainingMoney,
-                'new_debt' => $newDebt
+                'new_debt' => $newDebt,
+                'bonus_tickets' => $bonusTickets,
+                'new_tickets' => $newTickets
             ];
         } catch (Exception $e) {
             $this->db->rollback();
