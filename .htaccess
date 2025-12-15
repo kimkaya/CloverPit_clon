@@ -1,0 +1,26 @@
+# 보안 설정
+
+# 디렉토리 리스팅 비활성화
+Options -Indexes
+
+# 민감한 파일 접근 차단
+<FilesMatch "^(config|\.env|\.git)">
+    Require all denied
+</FilesMatch>
+
+# 로그 파일 접근 차단
+<DirectoryMatch "^/.*/logs/">
+    Require all denied
+</DirectoryMatch>
+
+# XSS 보호
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "DENY"
+    Header set X-XSS-Protection "1; mode=block"
+</IfModule>
+
+# HTTPS 리다이렉트 (프로덕션 환경에서 활성화)
+# RewriteEngine On
+# RewriteCond %{HTTPS} off
+# RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]

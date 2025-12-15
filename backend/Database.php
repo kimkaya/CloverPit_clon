@@ -5,12 +5,25 @@
  */
 
 class Database {
-    private $host = 'localhost';
-    private $dbname = 'cloverpit';
-    private $username = 'root';
-    private $password = '0000';
+    private $host;
+    private $dbname;
+    private $username;
+    private $password;
+    private $charset;
     private $conn = null;
     private $inTransaction = false;
+    private $config;
+
+    public function __construct() {
+        $this->config = require_once __DIR__ . '/config.php';
+        $dbConfig = $this->config['database'];
+
+        $this->host = $dbConfig['host'];
+        $this->dbname = $dbConfig['dbname'];
+        $this->username = $dbConfig['username'];
+        $this->password = $dbConfig['password'];
+        $this->charset = $dbConfig['charset'];
+    }
 
     /**
      * 데이터베이스 연결 생성 (싱글톤 패턴)
@@ -21,7 +34,7 @@ class Database {
         }
 
         try {
-            $dsn = "mysql:host={$this->host};dbname={$this->dbname};charset=utf8mb4";
+            $dsn = "mysql:host={$this->host};dbname={$this->dbname};charset={$this->charset}";
             $options = [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
@@ -32,7 +45,8 @@ class Database {
             $this->conn = new PDO($dsn, $this->username, $this->password, $options);
             return $this->conn;
         } catch (PDOException $e) {
-            throw new Exception("데이터베이스 연결 실패: " . $e->getMessage());
+            $this->logError("데이터베이스 연결 실패", $e);
+            throw new Exception("데이터베이스 연결에 실패했습니다.");
         }
     }
 
@@ -90,7 +104,8 @@ class Database {
                 $conn->rollBack();
                 $this->inTransaction = false;
             }
-            throw new Exception("락 획득 실패: " . $e->getMessage());
+            $this->logError("락 획득 실패", $e);
+            throw new Exception("락을 획득할 수 없습니다.");
         }
     }
 
@@ -120,7 +135,8 @@ class Database {
                 $conn->rollBack();
                 $this->inTransaction = false;
             }
-            throw new Exception("락 해제 실패: " . $e->getMessage());
+            $this->logError("락 해제 실패", $e);
+            throw new Exception("락을 해제할 수 없습니다.");
         }
     }
 
@@ -134,7 +150,7 @@ class Database {
             $stmt = $conn->prepare("DELETE FROM critical_locks WHERE expires_at < NOW()");
             $stmt->execute();
         } catch (PDOException $e) {
-            error_log("락 정리 실패: " . $e->getMessage());
+            $this->logError("락 정리 실패", $e);
         }
     }
 
@@ -177,5 +193,42 @@ class Database {
             $this->rollback();
         }
         $this->conn = null;
+    }
+
+    /**
+     * 에러 로깅
+     */
+    private function logError($message, $exception = null) {
+        if (!$this->config['logging']['enabled']) {
+            return;
+        }
+
+        $logFile = $this->config['logging']['file'];
+        $logDir = dirname($logFile);
+
+        if (!file_exists($logDir)) {
+            mkdir($logDir, 0755, true);
+        }
+
+        $timestamp = date('Y-m-d H:i:s');
+        $logMessage = "[{$timestamp}] {$message}";
+
+        if ($exception) {
+            $logMessage .= " - " . $exception->getMessage();
+            if ($this->config['environment'] === 'development') {
+                $logMessage .= "\n" . $exception->getTraceAsString();
+            }
+        }
+
+        $logMessage .= "\n";
+
+        error_log($logMessage, 3, $logFile);
+    }
+
+    /**
+     * 설정 값 가져오기
+     */
+    public function getConfig() {
+        return $this->config;
     }
 }

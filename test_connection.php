@@ -1,7 +1,20 @@
 <?php
+/**
+ * 보안 경고: 이 파일은 개발/테스트 환경 전용입니다.
+ * 프로덕션 환경에서는 반드시 삭제하거나 접근을 차단하세요!
+ */
+
+// 프로덕션 환경에서 접근 차단
+$config = require_once __DIR__ . '/backend/config.php';
+if ($config['environment'] === 'production') {
+    http_response_code(403);
+    die('Access Denied');
+}
+
 header('Content-Type: text/plain; charset=utf-8');
 
-echo "=== PHP-MySQL 연결 테스트 ===\n\n";
+echo "=== PHP-MySQL 연결 테스트 ===\n";
+echo "경고: 이 페이지는 개발 환경 전용입니다.\n\n";
 
 // PHP 버전 확인
 echo "1. PHP 버전: " . phpversion() . "\n";
@@ -17,9 +30,10 @@ if (extension_loaded('pdo_mysql')) {
 // 데이터베이스 연결 시도
 echo "\n3. 데이터베이스 연결 시도...\n";
 try {
-    $dsn = "mysql:host=localhost;dbname=cloverpit;charset=utf8mb4";
-    $username = "root";
-    $password = "0000";
+    $dbConfig = $config['database'];
+    $dsn = "mysql:host={$dbConfig['host']};dbname={$dbConfig['dbname']};charset={$dbConfig['charset']}";
+    $username = $dbConfig['username'];
+    $password = $dbConfig['password'];
     $options = [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
@@ -48,8 +62,11 @@ try {
 
 } catch (PDOException $e) {
     echo "   연결 실패! ✗\n";
-    echo "\n오류 메시지: " . $e->getMessage() . "\n";
-    echo "오류 코드: " . $e->getCode() . "\n";
+    echo "\n오류: 데이터베이스 연결에 실패했습니다.\n";
+    // 개발 환경에서만 상세 정보 표시
+    if ($config['logging']['enabled']) {
+        error_log("DB Connection Error: " . $e->getMessage());
+    }
     exit(1);
 }
 ?>

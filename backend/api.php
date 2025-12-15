@@ -4,15 +4,34 @@
  * 크리티컬 섹션을 통한 안정적인 게임 상태 관리
  */
 
-session_start();
-header('Content-Type: application/json');
 require_once 'Database.php';
+require_once 'SecurityHelper.php';
+
+// 세션 시작 전 설정
+$config = require_once 'config.php';
+$security = new SecurityHelper($config);
+
+// 보안 헤더 설정
+$security->setSecurityHeaders();
+
+// 세션 시작
+session_start();
+
+// 세션 보안 강화
+$security->secureSession();
+
+// Content-Type 설정
+header('Content-Type: application/json');
 
 class GameAPI {
     private $db;
+    private $security;
+    private $config;
 
-    public function __construct() {
+    public function __construct($security) {
         $this->db = new Database();
+        $this->security = $security;
+        $this->config = $this->db->getConfig();
         $this->db->cleanupExpiredLocks();
     }
 
@@ -20,6 +39,14 @@ class GameAPI {
      * 새 게임 시작
      */
     public function startGame($playerName) {
+        // 입력 검증
+        if (!$this->security->validatePlayerName($playerName)) {
+            return ['success' => false, 'error' => '유효하지 않은 플레이어 이름입니다.'];
+        }
+
+        // 입력 sanitize
+        $playerName = $this->security->sanitizeString($playerName);
+
         $sessionId = bin2hex(random_bytes(16));
         $_SESSION['game_session_id'] = $sessionId;
 
@@ -485,10 +512,20 @@ class GameAPI {
      * 아이템 구매 (크리티컬 섹션)
      */
     public function buyItem($itemId) {
+        // 입력 검증
+        if (!$this->security->validateInteger($itemId, 1)) {
+            return ['success' => false, 'error' => '유효하지 않은 아이템 ID입니다.'];
+        }
+
         $sessionId = $_SESSION['game_session_id'] ?? null;
 
         if (!$sessionId) {
             return ['success' => false, 'error' => '세션 없음'];
+        }
+
+        // 세션 ID 검증
+        if (!$this->security->validateSessionId($sessionId)) {
+            return ['success' => false, 'error' => '유효하지 않은 세션입니다.'];
         }
 
         $lockName = "buy_item_{$sessionId}";
@@ -596,9 +633,37 @@ class GameAPI {
     }
 }
 
+// Rate Limiting 체크
+$clientIP = $security->getClientIP();
+if (!$security->checkRateLimit($clientIP)) {
+    http_response_code(429);
+    echo json_encode(['success' => false, 'error' => '너무 많은 요청이 발생했습니다. 잠시 후 다시 시도해주세요.']);
+    exit;
+}
+
 // API 라우팅
-$api = new GameAPI();
+$api = new GameAPI($security);
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
+
+// CSRF 토큰 생성 (GET 요청 시)
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && $action === 'get_csrf_token') {
+    echo json_encode([
+        'success' => true,
+        'csrf_token' => $security->generateCSRFToken()
+    ]);
+    exit;
+}
+
+// CSRF 토큰 검증 (POST 요청 시)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $config['security']['csrf_enabled']) {
+    $csrfToken = $_POST['csrf_token'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+
+    if (!$security->validateCSRFToken($csrfToken)) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'error' => 'CSRF 토큰 검증 실패']);
+        exit;
+    }
+}
 
 try {
     switch ($action) {
@@ -629,8 +694,10 @@ try {
             break;
 
         default:
+            http_response_code(400);
             echo json_encode(['success' => false, 'error' => '잘못된 액션']);
     }
 } catch (Exception $e) {
-    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    http_response_code(500);
+    echo json_encode(['success' => false, 'error' => '서버 오류가 발생했습니다.']);
 }

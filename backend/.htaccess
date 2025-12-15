@@ -1,0 +1,34 @@
+# 보안 설정
+
+# config.php 파일 접근 차단
+<Files "config.php">
+    Require all denied
+</Files>
+
+# 디렉토리 리스팅 비활성화
+Options -Indexes
+
+# PHP 에러 메시지 비활성화 (프로덕션)
+php_flag display_errors off
+php_flag display_startup_errors off
+
+# 파일 업로드 제한
+php_value upload_max_filesize 5M
+php_value post_max_size 10M
+
+# 실행 시간 제한
+php_value max_execution_time 30
+php_value max_input_time 30
+
+# XSS 보호
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "DENY"
+    Header set X-XSS-Protection "1; mode=block"
+    Header set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
+</IfModule>
+
+# 민감한 파일 확장자 차단
+<FilesMatch "\.(env|log|bak|sql|md)$">
+    Require all denied
+</FilesMatch>

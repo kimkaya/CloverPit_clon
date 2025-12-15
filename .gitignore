@@ -1,0 +1,20 @@
+# 설정 파일 (민감한 정보 포함)
+backend/config.php
+
+# 로그 파일
+logs/
+*.log
+
+# 임시 파일
+*.tmp
+*.temp
+
+# OS 생성 파일
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
