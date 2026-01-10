@@ -640,6 +640,85 @@ body::before {
     }
 }
 
+/* 재시도 모달 */
+.retry-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 10001;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.retry-modal.active {
+    display: flex;
+}
+
+.retry-modal-content {
+    background: var(--bg-card);
+    border: 3px solid var(--accent-red);
+    border-radius: 15px;
+    padding: 40px;
+    max-width: 500px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 0 50px rgba(255, 51, 51, 0.5);
+    animation: modalPop 0.3s ease-out;
+}
+
+@keyframes modalPop {
+    0% {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.retry-icon {
+    font-size: 4em;
+    margin-bottom: 20px;
+    animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+}
+
+.retry-title {
+    font-size: 2em;
+    color: var(--accent-red);
+    margin-bottom: 15px;
+    text-shadow: 0 0 10px var(--accent-red);
+}
+
+.retry-message {
+    font-size: 1.2em;
+    color: var(--text-primary);
+    margin-bottom: 30px;
+    line-height: 1.6;
+}
+
+.retry-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.retry-actions .btn {
+    min-width: 140px;
+}
+
 /* 반응형 */
 @media (max-width: 768px) {
     .game-title {

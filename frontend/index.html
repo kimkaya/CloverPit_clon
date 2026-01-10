@@ -128,6 +128,19 @@
         <p>처리 중...</p>
     </div>
 
+    <!-- 연결 오류 재시도 모달 -->
+    <div id="retry-modal" class="retry-modal">
+        <div class="retry-modal-content">
+            <div class="retry-icon">🌐❌</div>
+            <h2 class="retry-title">인터넷 연결 오류</h2>
+            <p class="retry-message">서버와의 연결이 끊어졌습니다.<br>인터넷 연결을 확인해주세요.</p>
+            <div class="retry-actions">
+                <button id="retry-btn" class="btn btn-primary">🔄 다시 시도</button>
+                <button id="cancel-retry-btn" class="btn btn-secondary">취소</button>
+            </div>
+        </div>
+    </div>
+
     <!-- 알림 토스트 -->
     <div id="toast" class="toast"></div>
 

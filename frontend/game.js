@@ -8,6 +8,7 @@ class CloverPitGame {
         this.apiUrl = '../backend/api.php';
         this.gameState = null;
         this.isSpinning = false;
+        this.lastApiCall = null; // 마지막 API 호출 저장 (재시도용)
         this.init();
     }
 
@@ -19,6 +20,10 @@ class CloverPitGame {
         document.getElementById('close-shop-btn').addEventListener('click', () => this.closeShop());
         document.getElementById('end-round-btn').addEventListener('click', () => this.endRound());
         document.getElementById('restart-btn').addEventListener('click', () => this.restart());
+
+        // 재시도 모달 이벤트 리스너
+        document.getElementById('retry-btn').addEventListener('click', () => this.retryLastCall());
+        document.getElementById('cancel-retry-btn').addEventListener('click', () => this.hideRetryModal());
 
         // Enter 키로 게임 시작
         document.getElementById('player-name').addEventListener('keypress', (e) => {
@@ -32,6 +37,9 @@ class CloverPitGame {
      * API 호출 헬퍼
      */
     async callAPI(action, data = {}) {
+        // 현재 API 호출 저장 (재시도용)
+        this.lastApiCall = { action, data };
+
         this.showLoading(true);
 
         try {
@@ -47,6 +55,11 @@ class CloverPitGame {
                 body: formData
             });
 
+            // 네트워크 오류 체크 (응답이 없거나 상태 코드가 에러인 경우)
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
             const result = await response.json();
 
             if (!result.success) {
@@ -56,8 +69,21 @@ class CloverPitGame {
             return result;
         } catch (error) {
             console.error('API 오류:', error);
-            this.showToast('서버 연결 오류', 'error');
-            return { success: false, error: error.message };
+
+            // 모든 예외 상황에서 재시도 모달 표시
+            this.showRetryModal();
+
+            // 에러 타입에 따른 상세 정보 반환
+            if (error instanceof TypeError && error.message.includes('fetch')) {
+                // fetch 실패 = 네트워크 연결 문제
+                return { success: false, error: 'network_error', needsRetry: true };
+            } else if (error.message.includes('HTTP error')) {
+                // 서버 응답은 있지만 에러 상태
+                return { success: false, error: 'server_error', needsRetry: true };
+            } else {
+                // 기타 모든 오류
+                return { success: false, error: error.message, needsRetry: true };
+            }
         } finally {
             this.showLoading(false);
         }
@@ -501,6 +527,61 @@ class CloverPitGame {
      */
     sleep(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    /**
+     * 재시도 모달 표시
+     */
+    showRetryModal() {
+        const modal = document.getElementById('retry-modal');
+        modal.classList.add('active');
+    }
+
+    /**
+     * 재시도 모달 숨기기
+     */
+    hideRetryModal() {
+        const modal = document.getElementById('retry-modal');
+        modal.classList.remove('active');
+    }
+
+    /**
+     * 마지막 API 호출 재시도
+     */
+    async retryLastCall() {
+        this.hideRetryModal();
+
+        if (!this.lastApiCall) {
+            this.showToast('재시도할 작업이 없습니다', 'error');
+            return;
+        }
+
+        const { action, data } = this.lastApiCall;
+
+        // 작업 종류에 따라 적절한 메서드 호출
+        switch (action) {
+            case 'start':
+                await this.startGame();
+                break;
+            case 'spin':
+                await this.spinSlot();
+                break;
+            case 'end_round':
+                await this.endRound();
+                break;
+            case 'shop':
+                await this.openShop();
+                break;
+            case 'buy_item':
+                await this.callAPI(action, data);
+                break;
+            case 'state':
+                await this.refreshGameState();
+                break;
+            default:
+                // 기본적으로 저장된 파라미터로 다시 호출
+                await this.callAPI(action, data);
+        }
     }
 }
 
