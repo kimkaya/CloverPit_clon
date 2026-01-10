@@ -60,12 +60,6 @@ class Database {
         $conn = $this->connect();
 
         try {
-            // 트랜잭션 시작
-            if (!$this->inTransaction) {
-                $conn->beginTransaction();
-                $this->inTransaction = true;
-            }
-
             // MySQL GET_LOCK 함수 사용 (세션 레벨 락)
             $stmt = $conn->prepare("SELECT GET_LOCK(:lock_name, :timeout) as lock_result");
             $stmt->execute([
@@ -76,7 +70,7 @@ class Database {
             $result = $stmt->fetch();
 
             if ($result['lock_result'] == 1) {
-                // 락 테이블에 기록
+                // 락 테이블에 기록 (트랜잭션이 이미 시작된 경우)
                 $sessionId = session_id() ?: uniqid('lock_', true);
                 $expiresAt = date('Y-m-d H:i:s', time() + $timeout);
 
@@ -100,10 +94,6 @@ class Database {
 
             return false;
         } catch (PDOException $e) {
-            if ($this->inTransaction) {
-                $conn->rollBack();
-                $this->inTransaction = false;
-            }
             $this->logError("락 획득 실패", $e);
             throw new Exception("락을 획득할 수 없습니다.");
         }
@@ -124,17 +114,7 @@ class Database {
             // 락 테이블에서 삭제
             $stmt = $conn->prepare("DELETE FROM critical_locks WHERE lock_name = :lock_name");
             $stmt->execute([':lock_name' => $lockName]);
-
-            // 트랜잭션 커밋
-            if ($this->inTransaction) {
-                $conn->commit();
-                $this->inTransaction = false;
-            }
         } catch (PDOException $e) {
-            if ($this->inTransaction) {
-                $conn->rollBack();
-                $this->inTransaction = false;
-            }
             $this->logError("락 해제 실패", $e);
             throw new Exception("락을 해제할 수 없습니다.");
         }

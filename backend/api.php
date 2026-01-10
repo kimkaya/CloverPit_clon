@@ -53,6 +53,9 @@ class GameAPI {
         $lockName = "game_start_{$sessionId}";
 
         try {
+            // 트랜잭션 시작
+            $this->db->beginTransaction();
+
             // 크리티컬 섹션 진입
             if (!$this->db->acquireLock($lockName, 5)) {
                 throw new Exception("게임 시작 락 획득 실패");
@@ -144,6 +147,9 @@ class GameAPI {
         $lockName = "spin_{$sessionId}";
 
         try {
+            // 트랜잭션 시작
+            $this->db->beginTransaction();
+
             // 크리티컬 섹션 진입 - 동시 스핀 방지
             if (!$this->db->acquireLock($lockName, 10)) {
                 throw new Exception("다른 스핀이 진행 중입니다");
@@ -431,6 +437,9 @@ class GameAPI {
         $lockName = "end_round_{$sessionId}";
 
         try {
+            // 트랜잭션 시작
+            $this->db->beginTransaction();
+
             // 크리티컬 섹션 진입
             if (!$this->db->acquireLock($lockName, 10)) {
                 throw new Exception("라운드 종료 처리 중 락 획득 실패");
@@ -531,6 +540,9 @@ class GameAPI {
         $lockName = "buy_item_{$sessionId}";
 
         try {
+            // 트랜잭션 시작
+            $this->db->beginTransaction();
+
             // 크리티컬 섹션 진입
             if (!$this->db->acquireLock($lockName, 10)) {
                 throw new Exception("아이템 구매 처리 중");
@@ -619,15 +631,20 @@ class GameAPI {
     public function getShopItems() {
         try {
             $conn = $this->db->connect();
+            $this->db->beginTransaction();
+
             $stmt = $conn->prepare("SELECT * FROM items ORDER BY rarity, price");
             $stmt->execute();
             $items = $stmt->fetchAll();
+
+            $this->db->commit();
 
             return [
                 'success' => true,
                 'items' => $items
             ];
         } catch (Exception $e) {
+            $this->db->rollback();
             return ['success' => false, 'error' => $e->getMessage()];
         }
     }
